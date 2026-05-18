@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 import os
+=======
+
+>>>>>>> d287944 (RAG)
 from operator import itemgetter
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
+<<<<<<< HEAD
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -77,6 +82,66 @@ def create_retrieval_chain_with_lcel():
     Create a retrieval chain using LCEL (LangChain Expression Language).
     Returns a chain that can be invoked with {"question": "..."}
 
+=======
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+import os
+load_dotenv()
+print("Intializing Components...")
+
+
+embedding = OpenAIEmbeddings()
+llm = ChatOpenAI()
+vectorestore = PineconeVectorStore(
+    embedding=embedding,
+    index_name=os.environ.get("INDEX_NAME")
+)
+
+retrierver = vectorestore.as_retriever(search_kwargs={"k": 3})
+
+prompt_template = ChatPromptTemplate.from_template(
+    """"Answer the question based only in the following context :
+    {context}
+    Question: {question}
+    Provide a detailed answers:"""
+)
+
+def format_docs(docs):
+    """Format the retrieved documents into a string."""
+    return "\n\n".join(doc.page_content for doc in docs)
+#=================================================================
+# Implementaion1 : Without LCEL
+#=================================================================
+def retriever_chain_without_lcel(query : str):
+    """Simple retriever chain without LCE.
+    Manuwally retrieves documents, formats them, and generate a response.
+    Limitations: 
+    - manual step by step execution
+    - No build in streaming support
+    - no async support without additional code
+    - Header to compse with other chains
+    - Moer verbose and error-prone"""
+
+    docs = retrierver.invoke(query)
+    context = format_docs(docs)
+    messages = prompt_template.format_messages(context=context, question=query)
+    response = llm.invoke(messages)
+    return response.content
+
+
+#=================================================================
+# Implementaion1 : With LCEL
+#=================================================================
+#   
+def retriever_chain_with_lcel():
+    """Create a retriever chain using LCEL
+    returns a chahin that can be invoked without {"question": query} 
+     
+>>>>>>> d287944 (RAG)
     Advantages over non-LCEL approach:
     - Declarative and composable: Easy to chain operations with pipe operator (|)
     - Built-in streaming: chain.stream() works out of the box
@@ -87,14 +152,22 @@ def create_retrieval_chain_with_lcel():
     - Reusable: Chain can be saved, shared, and composed with other chains
     - Better debugging: LangChain provides better observability tools
     """
+<<<<<<< HEAD
     retrieval_chain = (
         RunnablePassthrough.assign(
             context=itemgetter("question") | retriever | format_docs
+=======
+     # when we use the the pip langchain automaticaly convert te py (format_docs) function into runnablelambda 
+    retrierver_chain = (
+        RunnablePassthrough.assign(
+            context=itemgetter("question") | retrierver | format_docs
+>>>>>>> d287944 (RAG)
         )
         | prompt_template
         | llm
         | StrOutputParser()
     )
+<<<<<<< HEAD
     return retrieval_chain
 
 
@@ -142,3 +215,22 @@ if __name__ == "__main__":
     result_with_lcel = chain_with_lcel.invoke({"question": query})
     print("\nAnswer:")
     print(result_with_lcel)
+=======
+    return retrierver_chain
+    
+if __name__ == '__main__':
+    print("Retrieving...")
+    query = "what is the Pinecone in machine learning?"
+
+    # result_without_lcel = retriever_chain_without_lcel(query)
+    # print(result_without_lcel)
+
+    print("*" * 50)
+    print("Using LCEL...")
+    retrierver_chain = retriever_chain_with_lcel()
+    result_with_lcel = retrierver_chain.invoke({"question": query})
+    print(result_with_lcel)
+
+
+
+>>>>>>> d287944 (RAG)
